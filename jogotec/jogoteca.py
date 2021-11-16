@@ -1,5 +1,5 @@
 import re
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, url_for
 from flask.helpers import flash
 
 
@@ -11,6 +11,23 @@ class Jogo:
         self.nome = nome
         self.categoria = categoria
         self.console = console
+
+
+class Usuario:
+    def __init__(self, id, nome, senha):
+        self.id = id
+        self.nome = nome
+        self.senha = senha
+
+
+usuario1 = Usuario('luan', 'Lua Marques', '1234')
+usuario2 = Usuario('nico', 'Nico Steppat', '7a1')
+usuario3 = Usuario('flavio', 'Flávio', 'javascript')
+
+usuarios = {usuario1.id: usuario1,
+            usuario2.id: usuario2,
+            usuario3.id: usuario3
+            }
 
 
 jogo1 = Jogo('Super Mario', 'Ação', 'SNES')
@@ -28,7 +45,7 @@ def index():
 @app.route('/novo')
 def novo():
     if 'usuario_logado' not in session:
-        return redirect('/login?proxima=novo')
+        return redirect(url_for("login", proxima=url_for('novo')))
     return render_template('novo.html', titulo = 'Novo Jogo')
 
 
@@ -42,7 +59,7 @@ def criar():
 
     lista.append(jogo)
 
-    return redirect('/')
+    return redirect(url_for('index'))
 
 @app.route('/login')
 def login():
@@ -53,23 +70,26 @@ def login():
 def logout():
     usuario = session.pop('usuario_logado', None)
     if usuario:
-        flash(f'{usuario} deslogado com sucesso!')
+        flash(f'{usuarios[usuario].nome} deslogado com sucesso!')
     else:
         flash('Nenhum usuario logado!')
-    return redirect('/login')
+    return redirect(url_for('index'))
 
 
 @app.route('/autenticar', methods=['POST',])
 def autenticar():
-    if 'mestra' == request.form['senha']:
-        usuario=request.form['usuario']
-        proxima_pagina=request.form['proxima']
-        session['usuario_logado']=usuario
-        flash(f'{usuario}  logou com sucesso!')
-        return redirect(f'/{proxima_pagina}')
+
+    usuario_form = request.form['usuario']
+    if  usuario_form in usuarios:
+        usuario = usuarios[usuario_form]
+        if  usuario.senha == request.form['senha']:
+            proxima_pagina=request.form['proxima']
+            session['usuario_logado']=usuario.id
+            flash(f'{usuario.nome}  logou com sucesso!')
+            return redirect(proxima_pagina)
     else:
         flash('Não logado, tente novamente!')
-        return redirect('/login')
+        return redirect(url_for('login'))
 
-app.run(debug=True)
+app.run(threaded=True, debug=True)
 

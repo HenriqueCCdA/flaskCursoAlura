@@ -1,0 +1,18 @@
+version: "3.3"
+
+services:
+
+  db:
+    container_name: flask_alura
+    image: mysql
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./db/.MySql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "alura"
+      MYSQL_DATABASE: "jogoteca"
+    ports:
+      - 3306:3306
+
+    

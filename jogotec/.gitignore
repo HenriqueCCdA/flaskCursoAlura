@@ -1,2 +1,4 @@
 # ambiente virtual
 .venv
+# banco de dados
+db

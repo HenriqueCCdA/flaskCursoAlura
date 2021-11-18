@@ -1,44 +1,29 @@
 import re
 from flask import Flask, render_template, request, redirect, session, url_for
 from flask.helpers import flash
+from flask_mysqldb import MySQL
+
+from models import Jogo, Usuario
+from dao import JogoDao, UsuarioDao
 
 
 app = Flask(__name__)
-app.secret_key = 'caelum'
+app.secret_key = 'alura'
 
-class Jogo:
-    def __init__(self, nome, categoria, console):
-        self.nome = nome
-        self.categoria = categoria
-        self.console = console
+app.config['MYSQL_HOST'] = '127.0.0.1'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'alura'
+app.config['MYSQL_DB'] = 'jogoteca'
+app.config['MYSQL_PORT'] = 3306
 
+db = MySQL(app)
 
-class Usuario:
-    def __init__(self, id, nome, senha):
-        self.id = id
-        self.nome = nome
-        self.senha = senha
-
-
-usuario1 = Usuario('luan', 'Lua Marques', '1234')
-usuario2 = Usuario('nico', 'Nico Steppat', '7a1')
-usuario3 = Usuario('flavio', 'Flávio', 'javascript')
-
-usuarios = {usuario1.id: usuario1,
-            usuario2.id: usuario2,
-            usuario3.id: usuario3
-            }
-
-
-jogo1 = Jogo('Super Mario', 'Ação', 'SNES')
-jogo2 = Jogo('Pokemin Gold', 'RPG', 'GBA')
-jogo3 = Jogo('Mortal Kombat', 'Luta', 'SNES')
-
-lista = [jogo1, jogo2, jogo3]
-
+jogo_dao = JogoDao(db)
+usuario_dao = UsuarioDao(db)
 
 @app.route('/')
 def index():
+    lista = jogo_dao.listar()
     return render_template('lista.html', titulo='Jogos', jogos = lista)
 
 
@@ -57,9 +42,22 @@ def criar():
 
     jogo = Jogo(nome, categoria, console)
 
-    lista.append(jogo)
+    jogo_dao.salvar(jogo)
 
     return redirect(url_for('index'))
+
+@app.route('/editar/<int:id>')
+def editar(id):
+    if 'usuario_logado' not in session:
+        return redirect(url_for("login", proxima=url_for('editar')))
+
+    jogo = jogo_dao.busca_por_id(id)
+
+    return render_template('editar.html', jogo=jogo, titulo='Editando o Jogo')
+
+@app.route('/atualizar', methods=['POST',])
+def atualizar():
+    pass
 
 @app.route('/login')
 def login():
@@ -68,9 +66,9 @@ def login():
 
 @app.route('/logout')
 def logout():
-    usuario = session.pop('usuario_logado', None)
+    usuario = usuario_dao.busca_por_id(session.pop('usuario_logado', None))
     if usuario:
-        flash(f'{usuarios[usuario].nome} deslogado com sucesso!')
+        flash(f'{usuario.nome} deslogado com sucesso!')
     else:
         flash('Nenhum usuario logado!')
     return redirect(url_for('index'))
@@ -78,18 +76,16 @@ def logout():
 
 @app.route('/autenticar', methods=['POST',])
 def autenticar():
+    usuario = usuario_dao.busca_por_id(request.form['usuario'])
 
-    usuario_form = request.form['usuario']
-    if  usuario_form in usuarios:
-        usuario = usuarios[usuario_form]
+    if usuario:
         if  usuario.senha == request.form['senha']:
-            proxima_pagina=request.form['proxima']
             session['usuario_logado']=usuario.id
             flash(f'{usuario.nome}  logou com sucesso!')
+            proxima_pagina=request.form['proxima']
             return redirect(proxima_pagina)
-    else:
-        flash('Não logado, tente novamente!')
-        return redirect(url_for('login'))
+
+    flash('Senha e/ou usuarios incorretos, tente novamente!')
+    return redirect(url_for('login'))
 
 app.run(threaded=True, debug=True)
-

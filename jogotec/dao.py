@@ -1,4 +1,4 @@
-from jogoteca import Jogo, Usuario
+from models import Jogo, Usuario
 
 SQL_DELETA_JOGO = 'DELETE FROM jogo WHERE id = %s'
 SQL_JOGO_POR_ID = 'SELECT ID, nome, categoria, console FROM jogo WHERE id = %s'
@@ -60,7 +60,7 @@ def traduz_jogos(jogos):
     def cria_jogo_com_tupla(tupla):
         return Jogo(tupla[1], tupla[2], tupla[3], id=tupla[0])
 
-        return list(map(cria_jogo_com_tupla, jogos))
+    return list(map(cria_jogo_com_tupla, jogos))
 
 def traduz_usuario(tupla):
     return Usuario(tupla[0], tupla[1], tupla[2])

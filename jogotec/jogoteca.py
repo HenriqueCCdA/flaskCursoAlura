@@ -49,15 +49,32 @@ def criar():
 @app.route('/editar/<int:id>')
 def editar(id):
     if 'usuario_logado' not in session:
-        return redirect(url_for("login", proxima=url_for('editar')))
+        return redirect(url_for("login", proxima=url_for('editar', id=id)))
 
     jogo = jogo_dao.busca_por_id(id)
 
     return render_template('editar.html', jogo=jogo, titulo='Editando o Jogo')
 
+@app.route('/deletar/<int:id>')
+def deletar(id):
+    jogo = jogo_dao.busca_por_id(id)
+    flash(f'O jogo {jogo.nome} foi deletado com sucesso!')
+    jogo_dao.deletar(id)
+    return redirect(url_for('index'))
+
+
 @app.route('/atualizar', methods=['POST',])
 def atualizar():
-    pass
+    nome = request.form['nome']
+    categoria = request.form['categoria']
+    console = request.form['console']
+    id = request.form['id']
+
+    jogo = Jogo(nome, categoria, console, id=id)
+
+    jogo_dao.salvar(jogo)
+
+    return redirect(url_for('index'))
 
 @app.route('/login')
 def login():

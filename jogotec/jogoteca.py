@@ -1,9 +1,11 @@
-import re
-from flask import Flask, render_template, request, redirect, session, url_for
+from pathlib import Path
+
+
+from flask import Flask, render_template, request, redirect, session, url_for, send_from_directory
 from flask.helpers import flash
 from flask_mysqldb import MySQL
 
-from models import Jogo, Usuario
+from models import Jogo
 from dao import JogoDao, UsuarioDao
 
 
@@ -15,6 +17,8 @@ app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'alura'
 app.config['MYSQL_DB'] = 'jogoteca'
 app.config['MYSQL_PORT'] = 3306
+app.config['UPLOAD_PATH'] = Path(__file__).resolve().parent / 'uploads'
+
 
 db = MySQL(app)
 
@@ -39,11 +43,12 @@ def criar():
     nome = request.form['nome']
     categoria = request.form['categoria']
     console = request.form['console']
-
     jogo = Jogo(nome, categoria, console)
+    jogo = jogo_dao.salvar(jogo)
 
-    jogo_dao.salvar(jogo)
-
+    arquivo = request.files['arquivo']
+    path = app.config['UPLOAD_PATH'] / f'capa_{jogo.id}.jpg'
+    arquivo.save(path)
     return redirect(url_for('index'))
 
 @app.route('/editar/<int:id>')
@@ -53,7 +58,8 @@ def editar(id):
 
     jogo = jogo_dao.busca_por_id(id)
 
-    return render_template('editar.html', jogo=jogo, titulo='Editando o Jogo')
+    return render_template('editar.html', jogo=jogo, titulo='Editando o Jogo',
+                            capa_jogo =  f'capa_{id}.jpg')
 
 @app.route('/deletar/<int:id>')
 def deletar(id):
@@ -104,5 +110,10 @@ def autenticar():
 
     flash('Senha e/ou usuarios incorretos, tente novamente!')
     return redirect(url_for('login'))
+
+@app.route('/uploads/<nome_arquivo>')
+def imagem(nome_arquivo):
+    return send_from_directory('uploads', nome_arquivo)
+
 
 app.run(threaded=True, debug=True)
